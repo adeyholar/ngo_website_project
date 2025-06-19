@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+requests
+streamlit
+pandas
+python-jose
+pyjwt
+gunicorn
+groq
