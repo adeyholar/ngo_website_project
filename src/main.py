@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from fastapi.responses import JSONResponse
 from datetime import datetime
 
@@ -8,7 +8,7 @@ app = FastAPI()
 blog_posts = []
 
 @app.post("/blog/add")
-async def add_blog_post(title: str, content: str):
+async def add_blog_post(title: str = Form(...), content: str = Form(...)):
     post = {"title": title, "content": content, "timestamp": datetime.now().isoformat()}
     blog_posts.append(post)
     return JSONResponse(content={"status": "added", "post_count": len(blog_posts)})
