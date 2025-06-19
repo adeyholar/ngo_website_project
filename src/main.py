@@ -2,9 +2,9 @@ from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
-app = FastAPI()
+app = FastAPI(title="NGO Website API", description="API for www.jemcrownfoundation.org managing blogs and engagement", version="0.1.0")
 
 # Pydantic model for blog post validation
 class BlogPost(BaseModel):
@@ -12,13 +12,19 @@ class BlogPost(BaseModel):
     content: str
     timestamp: Optional[str] = None
 
-# In-memory store for blog posts
+# Pydantic model for engagement data
+class EngagementData(BaseModel):
+    page: str
+    duration: float
+    timestamp: Optional[str] = None
+
+# In-memory stores
 blog_posts = []
+engagement_data = []
 
 @app.post("/blog/add")
 async def add_blog_post(title: str = Form(...), content: str = Form(...)):
     try:
-        # Validate and create blog post
         post = BlogPost(title=title, content=content, timestamp=datetime.now().isoformat())
         blog_posts.append(post.dict())
         return JSONResponse(content={"status": "added", "post_count": len(blog_posts)})
@@ -29,7 +35,20 @@ async def add_blog_post(title: str = Form(...), content: str = Form(...)):
 async def list_blog_posts():
     return JSONResponse(content=blog_posts)
 
-# Calculator endpoint with validation
+@app.post("/track/engagement")
+async def track_engagement(page: str = Form(...), duration: float = Form(...)):
+    try:
+        entry = EngagementData(page=page, duration=duration, timestamp=datetime.now().isoformat())
+        engagement_data.append(entry.dict())
+        return JSONResponse(content={"status": "tracked", "entry_count": len(engagement_data)})
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail={"error": "Invalid engagement data", "message": str(e)})
+
+@app.get("/engagement/stats")
+async def get_engagement_stats():
+    total_duration = sum(entry["duration"] for entry in engagement_data)
+    return JSONResponse(content={"total_visits": len(engagement_data), "total_duration": total_duration})
+
 @app.get("/calculate")
 async def calculate(operation: str, a: float, b: float):
     if not operation or not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
