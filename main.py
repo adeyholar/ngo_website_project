@@ -1,3 +1,4 @@
+# main.py
 from fastapi import FastAPI, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
@@ -10,28 +11,23 @@ from typing import Optional
 
 app = FastAPI(title="NGO Website API", description="API for www.jemcrownfoundation.org managing blogs and engagement", version="0.1.0")
 
-# Load API key from .env
 load_dotenv()
 API_KEY = os.getenv("GROQ_API_KEY")
 if not API_KEY:
     raise ValueError("GROQ_API_KEY not found in .env file")
 
-# Pydantic model for blog post validation
 class BlogPost(BaseModel):
     title: str
     content: str
     timestamp: str
 
-# Pydantic model for engagement data
 class EngagementData(BaseModel):
     page: str
     duration: float
     timestamp: Optional[str] = None
 
-# In-memory stores
-engagement_data = []  # Added missing definition
+engagement_data = []
 
-# API key security
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
@@ -40,13 +36,11 @@ async def get_api_key(api_key: str = Depends(api_key_header)):
         raise HTTPException(status_code=403, detail={"error": "Invalid API key"})
     return api_key
 
-# Role-based access
 def get_role(api_key: str):
-    if api_key == API_KEY and "admin" in api_key.lower():  # Case-insensitive check
+    if api_key == API_KEY and "admin" in api_key.lower():
         return "admin"
     return "user"
 
-# Database setup
 def init_db():
     conn = sqlite3.connect("ngo_database.db")
     c = conn.cursor()
@@ -128,14 +122,14 @@ async def delete_blog_post(post_id: int, api_key: str = Depends(get_api_key)):
 async def track_engagement(page: str = Form(...), duration: float = Form(...), api_key: str = Depends(get_api_key)):
     try:
         entry = EngagementData(page=page, duration=duration, timestamp=datetime.now().isoformat())
-        engagement_data.append(entry.dict())  # Now defined
+        engagement_data.append(entry.dict())
         return JSONResponse(content={"status": "tracked", "entry_count": len(engagement_data)})
     except ValueError as e:
         raise HTTPException(status_code=422, detail={"error": "Invalid engagement data", "message": str(e)})
 
 @app.get("/engagement/stats")
 async def get_engagement_stats(api_key: str = Depends(get_api_key)):
-    total_duration = sum(entry["duration"] for entry in engagement_data)  # Now defined
+    total_duration = sum(entry["duration"] for entry in engagement_data)
     return JSONResponse(content={"total_visits": len(engagement_data), "total_duration": total_duration})
 
 @app.get("/calculate")
